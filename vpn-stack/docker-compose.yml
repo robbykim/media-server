@@ -1,0 +1,140 @@
+networks:
+  vpn-network:
+    driver: bridge
+    name: vpn-network
+  media-network:
+    driver: bridge
+    name: media-network
+  nginx:
+    external: true
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    labels:
+      glance.name: Gluetun
+      glance.icon: di:gluetun
+      glance.description: VPN layer
+      glance.hide: false
+    cap_add:
+      - NET_ADMIN
+    env_file:
+      - .env
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      - vpn-network
+      - nginx
+    ports:
+      - 8000:8000/tcp # http server
+      - 8090:8090     # qbit
+      - 8092:8092     # sabnzbd
+      - 5030:5030     # slskd
+    volumes:
+      - ./gluetun:/gluetun
+      - ./gluetun/config.toml:/gluetun/auth/config.toml
+    environment:
+      # NOTE: for ProtonVPN
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${PVPN_PRIVATE_KEY}
+      - TZ=America/New_York
+      - VPN_PORT_FORWARDING=on
+      - SERVER_COUNTRIES=United States
+      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'wget -O- --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8090/api/v2/app/setPreferences 2>&1'
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: service:gluetun
+    env_file:
+      - .env
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - TZ=America/New_York
+      - WEBUI_PORT=8090
+    volumes:
+      - ./qbittorrent:/config
+      - /hawth/home/data/torrents:/data/torrents
+    restart: unless-stopped
+    depends_on:
+      - gluetun
+
+  qbittorrent-proxy:
+    container_name: qbittorrent-proxy
+    image: alpine/socat
+    networks:
+      - vpn-network
+      - media-network
+      - nginx
+    command: TCP-LISTEN:8090,fork,reuseaddr TCP-CONNECT:gluetun:8090
+    restart: unless-stopped
+    depends_on:
+      - qbittorrent
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    network_mode: service:gluetun
+    env_file:
+      - .env
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - TZ=America/New_York
+    volumes:
+      - ./sabnzbd/config:/config
+      - /hawth/home/data/usenet:/data/usenet
+    restart: unless-stopped
+    depends_on:
+      - gluetun
+
+  sabnzbd-proxy:
+    container_name: sabnzbd-proxy
+    image: alpine/socat
+    networks:
+      - vpn-network
+      - media-network
+      - nginx
+    command: TCP-LISTEN:8092,fork,reuseaddr TCP-CONNECT:gluetun:8092
+    restart: unless-stopped
+    depends_on:
+      - sabnzbd
+
+  slskd:
+    image: slskd/slskd
+    container_name: slskd
+    user: 1000:1001
+    network_mode: service:gluetun
+    environment:
+      - SLSKD_REMOTE_CONFIGURATION=true
+      - SLSKD_DOWNLOADS_DIR=/data/slskd/complete
+      - SLSKD_INCOMPLETE_DIR=/data/slskd/incomplete
+      - SLSKD_SLSK_USERNAME=${SLSK_USER}
+      - SLSKD_SLSK_PASSWORD=${SLSK_PASS}
+      - SLSKD_API_KEY=${SLSK_API_KEY}
+      - SLSKD_VPN=true
+      - SLSKD_VPN_PORT_FORWARDING=true
+      - SLSKD_VPN_GLUETUN_URL=http://localhost:8000
+      - SLSKD_VPN_GLUETUN_API_KEY=${GLUETUN_API_KEY}
+    volumes:
+      - ./slskd:/app
+      - /hawth/home/data/slskd:/data/slskd
+    restart: always
+    depends_on:
+      - gluetun
+
+  slskd-proxy:
+    container_name: slskd-proxy
+    image: alpine/socat
+    networks:
+      - vpn-network
+      - media-network
+      - nginx
+    command: TCP-LISTEN:5030,fork,reuseaddr TCP-CONNECT:gluetun:5030
+    restart: unless-stopped
+    depends_on:
+      - slskd

@@ -1,0 +1,142 @@
+networks:
+  media-network:
+    external: true
+  nginx:
+    external: true
+
+services:
+  radarr:
+    container_name: radarr
+    image: ghcr.io/hotio/radarr:latest
+    logging:
+      driver: json-file
+    ports:
+      - 7878:7878
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - TZ=America/New_York
+    volumes:
+      - ./radarr:/config
+      - /hawth/home/data:/data
+    networks:
+      - media-network
+      - nginx
+    restart: unless-stopped
+
+  sonarr:
+    container_name: sonarr
+    image: ghcr.io/hotio/sonarr:latest
+    logging:
+      driver: json-file
+    ports:
+      - 8989:8989
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - TZ=America/New_York
+    volumes:
+      - ./sonarr:/config
+      - /hawth/home/data:/data
+    networks:
+      - media-network
+      - nginx
+    restart: unless-stopped
+
+  lidarr:
+    container_name: lidarr
+    image: ghcr.io/hotio/lidarr:nightly
+    ports:
+      - "8686:8686"
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - UMASK=002
+      - TZ=America/New_York
+      - WEBUI_PORTS=8686/tcp
+    volumes:
+      - ./lidarr:/config
+      - /hawth/home/data:/data
+    networks:
+      - media-network
+      - nginx
+    restart: unless-stopped
+
+#  bazarr:
+#    image: lscr.io/linuxserver/bazarr:latest
+#    container_name: bazarr
+#    environment:
+#      - PUID=1000
+#      - PGID=1001
+#      - TZ=America/New_York
+#    volumes:
+#      - ./bazarr/config:/config
+#      - /hawth/home/data:/data
+#    ports:
+#      - 6767:6767
+#    networks:
+#      - media-network
+#      - nginx
+#    restart: unless-stopped
+
+  prowlarr:
+    container_name: prowlarr
+    image: ghcr.io/hotio/prowlarr:latest
+    ports:
+      - "9696:9696"
+    environment:
+      - PUID=1000
+      - PGID=1001
+      - UMASK=002
+      - TZ=America/New_York
+    volumes:
+      - ./prowlarr:/config
+    networks:
+      - media-network
+      - nginx
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    labels:
+      glance.name: Flaresolverr
+      glance.icon: di:flaresolverr
+      glance.description: Cloudflare solver
+      glance.hide: false
+    environment:
+      - LOG_LEVEL=info
+      - TZ=America/New_York
+    ports:
+      - 8191:8191
+    networks:
+      - media-network
+      - nginx
+    restart: unless-stopped
+
+  jellyseer:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=America/New_York
+    ports:
+      - 5055:5055
+    volumes:
+      - ./jellyseer:/app/config
+    networks:
+      - media-network
+      - nginx
+    restart: unless-stopped
+
+#  configarr:
+#    image: ghcr.io/raydak-labs/configarr:latest
+#    container_name: configarr
+#    user: 1000:1001
+#    environment:
+#      - TZ=America/New_York
+#    volumes:
+#      - ./configarr:/app/config # Contains the config.yml and secrets.yml
+#      - ./configarr/repos:/app/repos # Contains the config.yml and secrets.yml
+#    networks:
+#      - media-network
