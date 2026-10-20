@@ -18,10 +18,10 @@ services:
       - ./config:/config
       - ./cache:/cache
       - type: bind
-        source: /hawth/home/data/media
+        source: /path/to/media
         target: /data/media
       - type: bind
-        source: /hawth/home/data/media
+        source: /path/to/media
         target: /data/media2
         read_only: true
     ports:
