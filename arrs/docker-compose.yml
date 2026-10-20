@@ -18,7 +18,7 @@ services:
       - TZ=America/New_York
     volumes:
       - ./radarr:/config
-      - /hawth/home/data:/data
+      - /path/to/data:/data
     networks:
       - media-network
       - nginx
@@ -37,7 +37,7 @@ services:
       - TZ=America/New_York
     volumes:
       - ./sonarr:/config
-      - /hawth/home/data:/data
+      - /path/to/data:/data
     networks:
       - media-network
       - nginx
@@ -56,28 +56,11 @@ services:
       - WEBUI_PORTS=8686/tcp
     volumes:
       - ./lidarr:/config
-      - /hawth/home/data:/data
+      - /path/to/data:/data
     networks:
       - media-network
       - nginx
     restart: unless-stopped
-
-#  bazarr:
-#    image: lscr.io/linuxserver/bazarr:latest
-#    container_name: bazarr
-#    environment:
-#      - PUID=1000
-#      - PGID=1001
-#      - TZ=America/New_York
-#    volumes:
-#      - ./bazarr/config:/config
-#      - /hawth/home/data:/data
-#    ports:
-#      - 6767:6767
-#    networks:
-#      - media-network
-#      - nginx
-#    restart: unless-stopped
 
   prowlarr:
     container_name: prowlarr
