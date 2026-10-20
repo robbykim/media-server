@@ -58,7 +58,7 @@ services:
       - WEBUI_PORT=8090
     volumes:
       - ./qbittorrent:/config
-      - /hawth/home/data/torrents:/data/torrents
+      - /path/to/torrents:/data/torrents
     restart: unless-stopped
     depends_on:
       - gluetun
@@ -87,7 +87,7 @@ services:
       - TZ=America/New_York
     volumes:
       - ./sabnzbd/config:/config
-      - /hawth/home/data/usenet:/data/usenet
+      - /path/to/usenet:/data/usenet
     restart: unless-stopped
     depends_on:
       - gluetun
@@ -122,7 +122,7 @@ services:
       - SLSKD_VPN_GLUETUN_API_KEY=${GLUETUN_API_KEY}
     volumes:
       - ./slskd:/app
-      - /hawth/home/data/slskd:/data/slskd
+      - /path/to/slskd:/data/slskd
     restart: always
     depends_on:
       - gluetun
